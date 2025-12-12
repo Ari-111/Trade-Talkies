@@ -12,6 +12,7 @@ const roomSchema = new mongoose.Schema({
   },
   description: String,
   icon: String,
+  banner: String,
   ownerId: {
     type: String, // Firebase UID
     required: true,

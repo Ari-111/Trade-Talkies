@@ -16,7 +16,7 @@ const SUGGESTED_INTERESTS = [
 
 export function OnboardingForm() {
   const navigate = useNavigate()
-  const { user, token } = useAuthStore()
+  const { user, token, setUserProfile } = useAuthStore()
   const [username, setUsername] = useState('')
   const [interests, setInterests] = useState<string[]>([])
   const [customInterest, setCustomInterest] = useState('')
@@ -46,7 +46,7 @@ export function OnboardingForm() {
 
     setLoading(true)
     try {
-      await axios.post('http://localhost:8000/api/users/onboarding', {
+      const res = await axios.post('http://localhost:8000/api/users/onboarding', {
         uid: user?.uid,
         email: user?.email,
         username,
@@ -55,8 +55,9 @@ export function OnboardingForm() {
         headers: { Authorization: `Bearer ${token}` }
       })
       
+      setUserProfile(res.data)
       toast.success('Profile updated!')
-      navigate({ to: '/' })
+      navigate({ to: '/trade-talkies', search: { tab: 'discover' } })
     } catch (error) {
       console.error(error)
       toast.error('Failed to update profile')

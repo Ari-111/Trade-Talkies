@@ -32,6 +32,13 @@ import { useAuthStore } from '@/stores/auth-store'
 import axios from 'axios'
 import { toast } from 'sonner'
 
+const DEFAULT_BANNERS = [
+  'https://images.unsplash.com/photo-1611974765270-ca1258634369?q=80&w=600&auto=format&fit=crop', // Trading/Charts
+  'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=600&auto=format&fit=crop', // Stock Market
+  'https://images.unsplash.com/photo-1642543492481-44e81e3914a7?q=80&w=600&auto=format&fit=crop', // Crypto
+  'https://images.unsplash.com/photo-1526304640152-d4619684e484?q=80&w=600&auto=format&fit=crop', // Finance
+]
+
 type Role = 'owner' | 'admin' | 'moderator' | 'member'
 // Backend Message Type
 type Message = {
@@ -52,6 +59,7 @@ type Room = {
   id: string
   name: string
   icon?: string
+  banner?: string
   isPublic: boolean
   memberCount: number
   role: Role // current user role in this room
@@ -93,8 +101,8 @@ function getSenderInfo(message: Message, room: Room | null, currentUserId?: stri
 
 
 
-export function TradeTalkies() {
-  const [tab, setTab] = useState<'discover' | 'myRooms'>('myRooms')
+export function TradeTalkies({ initialTab = 'myRooms' }: { initialTab?: 'discover' | 'myRooms' }) {
+  const [tab, setTab] = useState<'discover' | 'myRooms'>(initialTab)
   const [rooms, setRooms] = useState<Room[]>([])
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
@@ -106,6 +114,7 @@ export function TradeTalkies() {
   const [createRoomStep, setCreateRoomStep] = useState(1)
   const [createChannelOpen, setCreateChannelOpen] = useState(false)
   const [roomName, setRoomName] = useState('')
+  const [bannerUrl, setBannerUrl] = useState('')
   const [roomTags, setRoomTags] = useState('')
   const [roomTagList, setRoomTagList] = useState<string[]>([])
   const [ageGateEnabled, setAgeGateEnabled] = useState(false)
@@ -259,7 +268,8 @@ export function TradeTalkies() {
         tags,
         isPublic: privacy === 'public',
         ownerId: user?.uid,
-        ageLimit: ageGateEnabled ? ageLimit : undefined
+        ageLimit: ageGateEnabled ? ageLimit : undefined,
+        banner: bannerUrl
       }, {
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -280,6 +290,7 @@ export function TradeTalkies() {
       setSelectedChannelId(newRoom.channels[0].id)
       setCreateRoomOpen(false)
       setRoomName('')
+      setBannerUrl('')
       setRoomTags('')
       setRoomTagList([])
       setAgeGateEnabled(false)
@@ -670,7 +681,12 @@ export function TradeTalkies() {
                             onClick={() => openPreview(room.id)}
                             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openPreview(room.id) }}
                           >
-                            <div className='absolute inset-0 bg-gradient-to-br from-black/20 via-black/10 to-transparent dark:from-white/10 dark:via-white/8 dark:to-transparent' />
+                            {room.banner ? (
+                              <img src={room.banner} alt={room.name} className='absolute inset-0 w-full h-full object-cover' />
+                            ) : (
+                              <div className='absolute inset-0 bg-gradient-to-br from-black/20 via-black/10 to-transparent dark:from-white/10 dark:via-white/8 dark:to-transparent' />
+                            )}
+                            <div className='absolute inset-0 bg-gradient-to-t from-black/60 to-transparent' />
                             <div className='absolute inset-x-0 bottom-0 flex items-center justify-between px-4 py-3'>
                               <div className='min-w-0'>
                                 <p className='truncate text-base font-semibold'>{room.name}</p>
@@ -724,6 +740,25 @@ export function TradeTalkies() {
                     <div className='space-y-2'>
                       <div className='text-sm font-medium'>Community name</div>
                       <Input placeholder='e.g. Indian Markets' value={roomName} onChange={(e) => setRoomName(e.target.value)} />
+                    </div>
+                    <div className='space-y-2'>
+                      <div className='text-sm font-medium'>Banner Image</div>
+                      <div className='grid grid-cols-4 gap-2 mb-2'>
+                        {DEFAULT_BANNERS.map((url) => (
+                          <div 
+                            key={url} 
+                            className={cn(
+                              'relative aspect-video cursor-pointer rounded-md overflow-hidden border-2',
+                              bannerUrl === url ? 'border-primary' : 'border-transparent'
+                            )}
+                            onClick={() => setBannerUrl(url)}
+                          >
+                            <img src={url} alt="Banner option" className='object-cover w-full h-full' />
+                          </div>
+                        ))}
+                      </div>
+                      <Input placeholder='https://example.com/banner.jpg' value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)} />
+                      <p className='text-xs text-muted-foreground'>Choose a default banner or paste a direct link to an image.</p>
                     </div>
                   </div>
                 )}

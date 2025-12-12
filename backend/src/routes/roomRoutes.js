@@ -53,7 +53,7 @@ router.get('/recommended', async (req, res) => {
 
 // Create a new room
 router.post('/', async (req, res) => {
-  const { name, description, tags, isPublic, ownerId, ageLimit } = req.body;
+  const { name, description, tags, isPublic, ownerId, ageLimit, banner } = req.body;
   
   try {
     const newRoom = new Room({
@@ -63,6 +63,7 @@ router.post('/', async (req, res) => {
       isPublic,
       ownerId,
       ageLimit,
+      banner,
       members: [ownerId], // Owner is automatically a member
       channels: [
         { name: 'general', type: 'text' },
