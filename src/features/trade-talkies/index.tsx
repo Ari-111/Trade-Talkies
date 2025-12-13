@@ -131,6 +131,80 @@ export function TradeTalkies({ initialTab = 'myRooms' }: { initialTab?: 'discove
   
   const [previewActive, setPreviewActive] = useState(false)
 
+  const [inputText, setInputText] = useState('')
+  const [isRecording, setIsRecording] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const [baseText, setBaseText] = useState('')
+
+  const handleMicClick = async () => {
+    if (isRecording) {
+      // Stop recording
+      mediaRecorderRef.current?.stop()
+      setIsRecording(false)
+    } else {
+      // Start recording
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        
+        let mimeType = 'audio/webm'
+        let extension = 'webm'
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/mp4'
+          extension = 'mp4'
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+             console.warn('Neither audio/webm nor audio/mp4 supported. Using default.')
+             mimeType = ''
+             extension = 'webm' // Fallback assumption
+          }
+        }
+
+        const options = mimeType ? { mimeType } : undefined
+        const mediaRecorder = new MediaRecorder(stream, options)
+        mediaRecorderRef.current = mediaRecorder
+        audioChunksRef.current = []
+        setBaseText(inputText) // Save what user typed before speaking
+
+        mediaRecorder.ondataavailable = async (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data)
+            
+            // Create blob from ALL chunks so far to get full context
+            const audioBlob = new Blob(audioChunksRef.current, { type: mimeType || mediaRecorder.mimeType })
+            const formData = new FormData()
+            formData.append('audio', audioBlob, `recording.${extension}`)
+
+            try {
+              const response = await axios.post('http://localhost:8000/api/ai/transcribe', formData, {
+                headers: {
+                  'Content-Type': 'multipart/form-data',
+                },
+              })
+              
+              if (response.data.text) {
+                // Replace text with base + new transcription
+                setInputText((baseText ? baseText + ' ' : '') + response.data.text)
+              }
+            } catch (error) {
+              console.error('Error transcribing audio chunk:', error)
+            }
+          }
+        }
+
+        mediaRecorder.onstop = () => {
+           stream.getTracks().forEach(track => track.stop());
+        }
+
+        // Request data every 2 seconds to simulate streaming
+        mediaRecorder.start(2000)
+        setIsRecording(true)
+      } catch (error) {
+        console.error('Error accessing microphone:', error)
+        toast.error('Microphone access denied')
+      }
+    }
+  }
+
   // Fetch rooms on mount
   useEffect(() => {
     const fetchRooms = async () => {
@@ -622,6 +696,10 @@ export function TradeTalkies({ initialTab = 'myRooms' }: { initialTab?: 'discove
                   position={isMobile ? 'sticky' : 'inline'}
                   className={cn(previewActive && !isJoined ? 'opacity-60 pointer-events-none' : '')}
                   placeholder={previewActive && !isJoined ? 'Join to start chatting' : `Message #${selectedChannel?.name ?? 'channel'}`}
+                  value={inputText}
+                  onChange={setInputText}
+                  isRecording={isRecording}
+                  onMicClick={handleMicClick}
                   onSubmit={(text) => {
                     if (!selectedRoom || !selectedChannel) return
                     if (previewActive && !isJoined) return
@@ -629,6 +707,8 @@ export function TradeTalkies({ initialTab = 'myRooms' }: { initialTab?: 'discove
                     if (!trimmed) return
                     
                     sendMessage(trimmed)
+                    setInputText('')
+                    setBaseText('') // Clear base text on submit
 
                     const el = messagesContainerRef.current
                     if (el) {

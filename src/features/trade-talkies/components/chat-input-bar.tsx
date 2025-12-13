@@ -11,6 +11,9 @@ type ChatInputBarProps = {
   onSubmit?: (text: string) => void
   leftOffset?: number
   position?: 'fixed' | 'sticky' | 'absolute' | 'inline'
+  value?: string
+  onChange?: (value: string) => void
+  isRecording?: boolean
 }
 
 export function ChatInputBar({
@@ -21,6 +24,9 @@ export function ChatInputBar({
   onSubmit,
   leftOffset = 0,
   position,
+  value,
+  onChange,
+  isRecording,
 }: ChatInputBarProps) {
   const isMobile = useIsMobile()
   const resolvedPosition = position ?? (isMobile ? 'sticky' : 'fixed')
@@ -49,9 +55,9 @@ export function ChatInputBar({
           e.preventDefault()
           const form = e.currentTarget
           const input = form.querySelector<HTMLInputElement>('input[type="text"]')
-          const value = input?.value.trim() ?? ''
-          if (value && onSubmit) onSubmit(value)
-          if (input) input.value = ''
+          const inputValue = input?.value.trim() ?? ''
+          if (inputValue && onSubmit) onSubmit(inputValue)
+          if (input && !value) input.value = '' // Only clear if uncontrolled
         }}
       >
         <Button
@@ -69,17 +75,19 @@ export function ChatInputBar({
           type='text'
           className='flex-1 bg-transparent text-base focus-visible:outline-hidden'
           placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange?.(e.target.value)}
         />
 
         <Button
           type='button'
           size='icon'
           variant='ghost'
-          className='rounded-full'
+          className={cn('rounded-full', isRecording && 'bg-red-500/10 text-red-500')}
           onClick={onMicClick}
           aria-label='Voice input'
         >
-          <Mic className='size-5 stroke-muted-foreground' />
+          <Mic className={cn('size-5 stroke-muted-foreground', isRecording && 'stroke-red-500 animate-pulse')} />
         </Button>
       </form>
     </div>

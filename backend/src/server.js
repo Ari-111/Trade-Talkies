@@ -7,6 +7,7 @@ import connectDB from './config/db.js';
 import userRoutes from './routes/userRoutes.js';
 import messageRoutes from './routes/messages.js';
 import roomRoutes from './routes/roomRoutes.js';
+import aiRoutes from './routes/ai.js';
 import socketHandler from './socket/index.js';
 
 dotenv.config();
@@ -25,6 +26,7 @@ app.use(express.json());
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/rooms', roomRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.get('/', (req, res) => {
   res.send('Trade Talkies Backend is running');
